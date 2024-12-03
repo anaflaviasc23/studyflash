@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Flashcards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            min-height: 200px;
+            padding: 0;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            transition: transform 0.8s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard.show-answer {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard .side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .flashcard .front,
+        .flashcard .back {
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .flashcard .back {
+            transform: rotateY(180deg);
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .correct {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .wrong {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .reveal {
+            background-color: #2196f3;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard">
+            <div class="side front">
+                <h2 id="question">Pergunta aparecerá aqui</h2>
+            </div>
+            <div class="side back">
+                <p id="answer">Resposta aparecerá aqui</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="reveal-btn" class="reveal" onclick="revealAnswer()">Mostrar Resposta</button>
+        <button id="correct-btn" class="correct" style="display: none;" onclick="markCorrect()">Acertou</button>
+        <button id="wrong-btn" class="wrong" style="display: none;" onclick="markWrong()">Errou</button>
+    </div>
+
+    <p>Pontuação: <span id="score">0</span> / <span id="total">0</span></p>
+
+    <script>
+        const initialFlashcards = [
+                       
+            { question: "Quais são os regimes jurídicos sob os quais a Administração Pública pode se submeter?", answer: "A Administração Pública pode submeter-se a regime jurídico de direito público ou a regime jurídico de direito privado, dependendo da situação e da legislação aplicável." },
+            { question: "Quem define o regime jurídico a ser adotado pela Administração Pública?", answer: "O regime jurídico adotado pela Administração Pública é definido pela Constituição ou pela lei. A Administração Pública não pode, por ato próprio, escolher um regime jurídico não autorizado em lei, pois está vinculada ao princípio da legalidade." },
+            { question: "Em quais circunstâncias a Administração Pública deve adotar o regime jurídico de direito privado?", answer: "A Administração Pública deve adotar o regime jurídico de direito privado quando, por lei, for instituída uma entidade para a exploração de atividade econômica. Neste caso, as entidades serão submetidas ao regime jurídico próprio das empresas privadas, inclusive em relação aos direitos e obrigações civis, comerciais, trabalhistas e tributários." },
+            { question: "O que estabelece o art. 175 da Constituição Federal de 1988?", answer: "O art. 175 da CF/88 determina que o Poder Público deve prestar serviços públicos, podendo fazê-lo diretamente ou por meio de concessão ou permissão. O parágrafo único confere à lei ordinária a tarefa de definir o regime jurídico das empresas concessionárias e permissionárias de serviços públicos." },
+            { question: "Qual é a diferença entre 'regime jurídico da Administração Pública' e 'regime jurídico administrativo'?", answer: "O regime jurídico da Administração Pública refere-se ao conjunto de regimes de direito público e direito privado que a Administração pode adotar. Já o regime jurídico administrativo é um conjunto específico de normas que caracteriza as relações entre a Administração Pública e os particulares, com foco nas prerrogativas e restrições que a Administração possui no exercício de suas funções." },
+            { question: "Quais são os elementos principais do regime jurídico administrativo?", answer: "O regime jurídico administrativo se baseia em duas ideias principais: Prerrogativas, que são os privilégios e faculdades especiais que a Administração Pública tem em relação aos particulares; e Sujeições ou restrições, que são limitações impostas à Administração para garantir a legalidade e a supremacia do interesse público." },
+            { question: "O que significa a 'supremacia do interesse público' no regime jurídico administrativo?", answer: "A supremacia do interesse público significa que a Administração Pública tem a capacidade de agir de forma a priorizar o bem coletivo em detrimento de interesses individuais, justificando a concessão de prerrogativas à Administração para garantir a realização de seus objetivos." },
+            { question: "Quais são algumas das prerrogativas exclusivas da Administração Pública?", answer: "Algumas das prerrogativas da Administração Pública incluem: Autoexecutoriedade, autotutela, poder de expropriar, imunidade tributária, e prazos dilatados em juízo." },
+            { question: "O que caracteriza a relação jurídico-administrativa?", answer: "A relação jurídico-administrativa é caracterizada pela existência de prerrogativas da Administração Pública e restrições que limitam sua atuação, sempre com o objetivo de proteger o interesse público e garantir a legalidade de seus atos." },
+            { question: "O que acontece quando a Administração Pública não observa as restrições impostas pelo regime jurídico administrativo?", answer: "Quando a Administração Pública desvia-se dos princípios e restrições que lhe são impostas, há desvio de poder e, consequentemente, nulidade dos atos administrativos realizados." },
+            { question: "O que são princípios, segundo o texto?", answer: "Princípios são proposições básicas e fundamentais que servem como alicerces para uma ciência ou área do conhecimento. Eles orientam todas as estruturas subsequentes dentro dessa ciência." },
+            { question: "Como José Cretella Júnior classifica os princípios?", answer: "José Cretella Júnior classifica os princípios como: Onivalentes ou universais, plurivalentes ou regionais, monovalentes e setoriais." },
+            { question: "Quais são os dois princípios fundamentais do Direito Administrativo, segundo o texto?", answer: "Os princípios fundamentais do Direito Administrativo são a Legalidade e a Supremacia do Interesse Público sobre o Particular." },
+            { question: "Quais são os princípios constitucionais da Administração Pública?", answer: "Os princípios constitucionais da Administração Pública, conforme o Art. 37 da CF/88, são: Legalidade, Impessoalidade, Moralidade, Publicidade e Eficiência." },
+            { question: "Quais são os princípios presentes na Lei 9.784/99 (Lei do Processo Administrativo Federal)?", answer: "A Lei 9.784/99 menciona os princípios de Legalidade, Finalidade, Motivação, Razoabilidade, Proporcionalidade, Moralidade, Ampla defesa, Contraditório, Segurança jurídica, Interesse público e Eficiência." },
+            { question: "O que significa o princípio da Legalidade na Administração Pública?", answer: "O princípio da Legalidade estabelece que a Administração Pública só pode agir conforme a lei, ou seja, sua atuação está restrita ao que a lei permite." },
+            { question: "Qual é a relação entre o princípio da Legalidade e o princípio da Autonomia da Vontade no âmbito privado?", answer: "No âmbito das relações privadas, o princípio da Autonomia da Vontade permite que os indivíduos façam tudo o que a lei não proíbe. Já a Legalidade na Administração Pública impõe que o Estado só faça o que a lei permite." },
+            { question: "O que significa o princípio da Impessoalidade na Administração Pública?", answer: "O princípio da Impessoalidade significa que a Administração Pública deve atuar em função do interesse público, sem beneficiar ou prejudicar pessoas específicas." },
+            { question: "Como a Lei 9.784/99 aplica o princípio da Impessoalidade?", answer: "A Lei 9.784/99 estabelece, em seu Art. 2º, parágrafo único, que no processo administrativo deve ser observada a objetividade no atendimento do interesse público, vedando a promoção pessoal de agentes ou autoridades públicas." },
+            { question: "O que é o princípio da Moralidade Administrativa?", answer: "O princípio da Moralidade Administrativa exige que os atos da Administração Pública sejam realizados de acordo com padrões éticos de probidade, decoro, boa-fé e respeito à moralidade comum." },
+            { question: "Quais comportamentos são considerados imorais no contexto da Administração Pública?", answer: "São considerados imorais comportamentos que violam os bons costumes, regras de boa administração, princípios de justiça e equidade, e a ideia comum de honestidade." },
+            { question: "O que é o desvio de poder ou desvio de finalidade?", answer: "Desvio de poder ocorre quando o agente público pratica um ato com um fim diferente daquele previsto na norma que lhe confere competência." },
+            { question: "O que exige o princípio da Publicidade?", answer: "O princípio da Publicidade exige a ampla divulgação dos atos administrativos, salvo exceções previstas em lei, como os casos de sigilo para proteger a intimidade ou a segurança pública." },
+            { question: "Quais exceções existem ao princípio da Publicidade?", answer: "O Art. 5º da Constituição Federal prevê que a publicidade dos atos administrativos pode ser restringida para proteger a intimidade ou o interesse social, e em situações de sigilo por ordem judicial ou para garantir a segurança da sociedade ou do Estado." },
+            { question: "O que o Art. 5º da Constituição assegura quanto ao direito à informação?", answer: "O Art. 5º da CF/88 assegura o direito de acesso à informação pública a todos os cidadãos, com exceção das informações cujo sigilo seja imprescindível à segurança da sociedade ou do Estado." }
+            
+
+        ];
+
+        let flashcards = [...initialFlashcards];
+        let currentIndex = 0;
+        let score = 0;
+        let answeredCards = [];
+
+        document.getElementById("total").textContent = flashcards.length;
+
+        function loadFlashcard() {
+            const flashcard = document.getElementById("flashcard");
+            flashcard.classList.remove('show-answer');
+            document.getElementById("reveal-btn").style.display = "inline-block";
+            document.getElementById("correct-btn").style.display = "none";
+            document.getElementById("wrong-btn").style.display = "none";
+
+            if (flashcards.length === 0) {
+                alert("Parabéns! Você acertou todas as perguntas. O jogo será reiniciado com uma nova ordem.");
+                resetGame();
+                return;
+            }
+
+            const card = flashcards[currentIndex];
+            document.getElementById("question").textContent = card.question;
+            document.getElementById("answer").textContent = card.answer;
+        }
+
+        function revealAnswer() {
+            document.getElementById("flashcard").classList.add('show-answer');
+            document.getElementById("reveal-btn").style.display = "none";
+            document.getElementById("correct-btn").style.display = "inline-block";
+            document.getElementById("wrong-btn").style.display = "inline-block";
+        }
+
+        function markCorrect() {
+            score++;
+            document.getElementById("score").textContent = score;
+            nextFlashcard();
+        }
+
+        function markWrong() {
+            answeredCards.push(flashcards[currentIndex]);
+            nextFlashcard();
+        }
+
+        function nextFlashcard() {
+            flashcards.splice(currentIndex, 1);
+            currentIndex = flashcards.length > 0 ? Math.floor(Math.random() * flashcards.length) : 0;
+            loadFlashcard();
+        }
+
+        function resetGame() {
+            flashcards = shuffle([...initialFlashcards]);
+            answeredCards = [];
+            score = 0;
+            document.getElementById("score").textContent = score;
+            currentIndex = 0;
+            loadFlashcard();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        window.onload = loadFlashcard;
+    </script>
+
+</body>
+
+</html>
